@@ -21,7 +21,8 @@ function getState_khal {
 
   # Show the start time and title of the next meeting if one is left today.
   if [[ ${#list[@]} -gt 0 ]] ; then
-    state="${state} ${list[0]}"
+    meeting=$(abbreviate "${list[0]}" "khal")
+    state="${state} ${meeting}"
   fi
 
   STATE="${state}"
