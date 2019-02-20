@@ -8,22 +8,36 @@
 
 # Implement the interface function to get the current state.
 function getState_khal {
-  state="${KHAL_ICON}"
+  # Use the end time to filter all-day events.
+  end_times="$(khal list --notstarted -f '{end-necessary}' --day-format '' today today)"
+  schedule="$(khal list --notstarted -f '{start-time} - {title} {repeat-symbol}' --day-format '' today today)"
 
-  # Get all left meetings today.
-  schedule="$(khal list --notstarted -f '{start-time} - {title}' --day-format '' today today)"
-  readarray -t list <<< "$schedule"
+  readarray -t end_time_list <<< "$end_times"
+  readarray -t schedule_list <<< "$schedule"
 
-  # Check if there are more than one meeting to mention about.
-  if [[ ${#list[@]} -gt 1 ]] ; then
-    state="${state} (+$((${#list[@]} - 1)))"
-  fi
+  event_count=0
+  state=""
 
-  # Show the start time and title of the next meeting if one is left today.
-  if [[ ${#list[@]} -gt 0 ]] ; then
-    meeting=$(abbreviate "${list[0]}" "khal")
-    state="${state} ${meeting}"
-  fi
+  for ((i=0; i<=${#end_time_list[@]}; i++)); do
+    end="${end_time_list[i]}"
+    event="${schedule_list[i]}"
 
+    # All-day events have an empty ending time.
+    if [[ -n "$end" ]]; then
+      # Only add the next event.
+      if [[ -z "$state" ]]; then
+        state=$(abbreviate "$event" "khal")
+
+      # Count events after the next one.
+      else
+        event_count=$((event_count + 1))
+      fi
+    fi
+  done
+
+  # Add number of left meetings if some are left.
+  [[ $event_count -gt 0 ]] && state="(+$event_count) $state"
+
+  state="${KHAL_ICON} $state"
   STATE="${state}"
 }
