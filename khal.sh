@@ -9,9 +9,11 @@
 # Implement the interface function to get the current state.
 function getState_khal {
   # Use the end time to filter all-day events.
-  end_times="$(khal list --notstarted -f '{end-necessary}' --day-format '' today today)"
-  schedule="$(khal list --notstarted -f '{start-time} - {title} {repeat-symbol}' --day-format '' today today)"
+  start_times="$(khal list --notstarted -f '{start-time}' --day-format '' now tomorrow)"
+  end_times="$(khal list --notstarted -f '{end-necessary}' --day-format '' now tomorrow)"
+  schedule="$(khal list --notstarted -f '{start-time} - {title} {repeat-symbol}' --day-format '' now tomorrow)"
 
+  readarray -t start_time_list <<< "$start_times"
   readarray -t end_time_list <<< "$end_times"
   readarray -t schedule_list <<< "$schedule"
 
@@ -19,11 +21,12 @@ function getState_khal {
   state=""
 
   for ((i=0; i<=${#end_time_list[@]}; i++)); do
+    start="${start_time_list[i]}"
     end="${end_time_list[i]}"
     event="${schedule_list[i]}"
 
     # All-day events have an empty ending time.
-    if [[ -n "$end" ]]; then
+    if [[ -n "$start" ]] && [[ -n "$end" ]]; then
       # Only add the next event.
       if [[ -z "$state" ]]; then
         state=$(abbreviate "$event" "khal")
